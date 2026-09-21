@@ -2,203 +2,160 @@ import streamlit as st
 import requests
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import pandas as pd
 import html
 
 
-# ============================================================
-# 1. 페이지 기본 설정
-# ============================================================
+# =========================================================
+# 1. 기본 페이지 설정
+# =========================================================
 
 st.set_page_config(
-    page_title="🥒 어제의 박스오피스",
-    page_icon="🥒",
+    page_title="어제의 박스오피스",
+    page_icon="🎬",
     layout="wide"
 )
 
 
-# ============================================================
-# 2. 화면 디자인
-# ============================================================
+# =========================================================
+# 2. 예쁜 화면을 위한 CSS
+# =========================================================
 
 st.markdown("""
 <style>
+    /* 전체 배경 */
+    .stApp {
+        background: linear-gradient(135deg, #fff8fb 0%, #f7f4ff 100%);
+    }
 
-.main-title {
-    text-align: center;
-    font-size: 42px;
-    font-weight: 800;
-    margin-bottom: 5px;
-}
+    /* 메인 제목 */
+    .main-title {
+        text-align: center;
+        font-size: 3rem;
+        font-weight: 800;
+        margin-top: 10px;
+        margin-bottom: 5px;
+        background: linear-gradient(90deg, #ff5c8a, #8b6cff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-.sub-title {
-    text-align: center;
-    color: #666;
-    font-size: 17px;
-    margin-bottom: 30px;
-}
+    .sub-title {
+        text-align: center;
+        color: #777;
+        font-size: 1.05rem;
+        margin-bottom: 30px;
+    }
 
-.movie-card {
-    background: linear-gradient(135deg, #f7fff7, #eaffea);
-    border-radius: 18px;
-    padding: 24px;
-    border: 2px solid #c9edc9;
-    margin-bottom: 20px;
-}
+    /* 1위 영화 카드 */
+    .winner-card {
+        background: white;
+        border-radius: 24px;
+        padding: 28px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 25px rgba(80, 60, 120, 0.10);
+        border: 1px solid #eee;
+    }
 
-.movie-number {
-    font-size: 20px;
-    font-weight: 700;
-    color: #348a34;
-}
+    .winner-rank {
+        color: #ff5c8a;
+        font-size: 1rem;
+        font-weight: 700;
+    }
 
-.movie-name {
-    font-size: 28px;
-    font-weight: 800;
-    margin: 5px 0 15px 0;
-}
+    .winner-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #29243d;
+        margin: 5px 0 8px 0;
+    }
 
-.help-box {
-    background: #fff9e6;
-    border: 1px solid #f0d77b;
-    border-radius: 14px;
-    padding: 18px;
-    margin: 15px 0;
-}
+    .winner-info {
+        color: #777;
+        font-size: 0.95rem;
+    }
 
-.error-box {
-    background: #fff0f0;
-    border: 1px solid #f0aaaa;
-    border-radius: 14px;
-    padding: 18px;
-    margin: 15px 0;
-}
+    /* 지표 카드 */
+    .metric-card {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 6px 20px rgba(80, 60, 120, 0.08);
+        border: 1px solid #eee;
+    }
 
-.success-box {
-    background: #f1fff1;
-    border: 1px solid #b9e6b9;
-    border-radius: 14px;
-    padding: 15px;
-    margin: 15px 0;
-}
+    .metric-label {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 7px;
+    }
 
+    .metric-value {
+        color: #29243d;
+        font-size: 1.65rem;
+        font-weight: 800;
+    }
 
-/* ========================================================
-   오이 막대그래프
-   ======================================================== */
+    /* 섹션 제목 */
+    .section-title {
+        color: #29243d;
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
 
-.cucumber-chart {
-    background: #f8fff8;
-    border-radius: 18px;
-    padding: 25px;
-    border: 2px solid #d7efd7;
-}
+    /* 안내 박스 */
+    .help-box {
+        background: #fff;
+        border-radius: 18px;
+        padding: 22px;
+        border: 1px solid #eadff5;
+        color: #555;
+        line-height: 1.7;
+        box-shadow: 0 5px 18px rgba(80, 60, 120, 0.06);
+    }
 
-.cucumber-row {
-    margin-bottom: 28px;
-}
+    /* 하단 */
+    .footer {
+        text-align: center;
+        color: #999;
+        font-size: 0.85rem;
+        margin-top: 40px;
+        padding-bottom: 20px;
+    }
 
-.cucumber-title {
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.cucumber-track {
-    width: 100%;
-    height: 44px;
-    background: #edf7ed;
-    border-radius: 24px;
-    overflow: hidden;
-    position: relative;
-}
-
-.cucumber-fill {
-    height: 44px;
-    min-width: 45px;
-    border-radius: 24px;
-    background: linear-gradient(
-        90deg,
-        #4caf50,
-        #79c95b
-    );
-    position: relative;
-    box-shadow:
-        inset 0 3px 5px rgba(255,255,255,0.45),
-        0 2px 4px rgba(0,0,0,0.12);
-}
-
-/* 오이의 하이라이트 */
-.cucumber-fill::before {
-    content: "";
-    position: absolute;
-    top: 8px;
-    left: 14px;
-    right: 14px;
-    height: 5px;
-    background: rgba(255,255,255,0.38);
-    border-radius: 5px;
-}
-
-/* 오이의 작은 돌기 */
-.cucumber-fill::after {
-    content: "•  •  •  •  •  •  •  •";
-    position: absolute;
-    top: 14px;
-    left: 22px;
-    color: rgba(20,90,20,0.35);
-    font-size: 10px;
-    letter-spacing: 8px;
-    white-space: nowrap;
-}
-
-.cucumber-value {
-    font-weight: 700;
-    color: #388e3c;
-    margin-top: 6px;
-}
-
+    /* 표 모서리 */
+    [data-testid="stDataFrame"] {
+        border-radius: 15px;
+        overflow: hidden;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ============================================================
-# 3. 제목
-# ============================================================
-
-st.markdown(
-    '<div class="main-title">🥒 어제의 박스오피스</div>',
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# 4. 한국 시간 기준으로 '어제' 계산
-# ============================================================
+# =========================================================
+# 3. 한국 시간 기준으로 '어제' 계산
+# =========================================================
 # Streamlit Cloud 서버가 한국 시간이 아닐 수도 있기 때문에
-# 반드시 한국 시간(KST)을 기준으로 날짜를 계산합니다.
+# 반드시 Asia/Seoul 시간대를 직접 지정한다.
 
 KST = ZoneInfo("Asia/Seoul")
 
 now_kst = datetime.now(KST)
-
 yesterday_kst = now_kst - timedelta(days=1)
 
+# KOBIS API가 요구하는 날짜 형식: YYYYMMDD
 target_date = yesterday_kst.strftime("%Y%m%d")
 
+# 화면에 보여줄 날짜
 display_date = yesterday_kst.strftime("%Y년 %m월 %d일")
 
 
-st.markdown(
-    f'<div class="sub-title">'
-    f'📅 {display_date} 기준 KOBIS 일일 박스오피스'
-    f'</div>',
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# 5. KOBIS API 주소
-# ============================================================
+# =========================================================
+# 4. KOBIS API 주소
+# =========================================================
 
 API_URL = (
     "https://www.kobis.or.kr/"
@@ -207,302 +164,137 @@ API_URL = (
 )
 
 
-# ============================================================
-# 6. Secrets에서 인증키 가져오기
-# ============================================================
-# Streamlit Cloud의 Secrets에 아래처럼 입력해야 합니다.
-#
-# KOBIS_KEY = "발급받은_인증키"
-#
-# 실제 인증키는 이 코드에 작성하지 않습니다.
+# =========================================================
+# 5. 화면 제목
+# =========================================================
+
+st.markdown(
+    '<div class="main-title">🎬 어제의 박스오피스</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    f'<div class="sub-title">{display_date} · KOBIS 일일 박스오피스</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# 6. API 인증키 가져오기
+# =========================================================
+# 실제 인증키는 코드에 넣지 않는다.
+# Streamlit Cloud의 Secrets에서 KOBIS_KEY를 읽는다.
 
 try:
-
-    KOBIS_KEY = st.secrets["KOBIS_KEY"]
-
+    api_key = st.secrets["KOBIS_KEY"]
 except Exception:
+    st.error("🔑 KOBIS 인증키를 찾을 수 없습니다.")
 
     st.markdown("""
-    <div class="error-box">
+    <div class="help-box">
+        <b>확인할 것</b><br><br>
+        ① Streamlit Cloud의 앱 설정에서 <b>Secrets</b>를 열어 주세요.<br>
+        ② 아래와 같이 입력되어 있는지 확인하세요.<br><br>
 
-        <h3>🔑 KOBIS 인증키를 찾을 수 없습니다.</h3>
+        <code>KOBIS_KEY = "발급받은_인증키"</code><br><br>
 
-        <p><b>다음 내용을 확인해 주세요.</b></p>
-
-        <ol>
-            <li>Streamlit Cloud에서 앱의 Settings를 엽니다.</li>
-            <li>Secrets 메뉴로 들어갑니다.</li>
-            <li><b>KOBIS_KEY</b>라는 이름으로 인증키를 등록합니다.</li>
-        </ol>
-
-        <pre>KOBIS_KEY = "여기에_발급받은_인증키"</pre>
-
-        <p>
-        ⚠️ 인증키는 <b>main.py 코드에 직접 입력하지 마세요.</b>
-        </p>
-
+        ③ 인증키 이름이 정확히 <b>KOBIS_KEY</b>인지 확인하세요.
     </div>
     """, unsafe_allow_html=True)
 
     st.stop()
 
 
-# ============================================================
+# =========================================================
 # 7. KOBIS API 요청
-# ============================================================
+# =========================================================
 
 params = {
-    "key": KOBIS_KEY,
+    "key": api_key,
     "targetDt": target_date
 }
 
-
 try:
-
     response = requests.get(
         API_URL,
         params=params,
         timeout=15
     )
 
-
-except requests.exceptions.Timeout:
-
-    st.markdown("""
-    <div class="error-box">
-
-        <h3>⏰ KOBIS API 요청 시간이 초과되었습니다.</h3>
-
-        <p>
-        KOBIS 서버가 늦게 응답했거나 일시적인 문제가 있을 수 있습니다.
-        </p>
-
-        <p>
-        잠시 후 페이지를 새로고침해 주세요.
-        </p>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.stop()
-
-
-except requests.exceptions.RequestException as e:
-
-    st.markdown(
-        f"""
-        <div class="error-box">
-
-            <h3>🌐 KOBIS API에 연결하지 못했습니다.</h3>
-
-            <p>
-            인터넷 연결 또는 KOBIS API 서버 상태를 확인해 주세요.
-            </p>
-
-            <p>
-            오류 내용:
-            {html.escape(str(e))}
-            </p>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.stop()
-
-
-# ============================================================
-# 8. HTTP 상태 코드 확인
-# ============================================================
-
-if response.status_code != 200:
-
-    st.markdown(
-        f"""
-        <div class="error-box">
-
-            <h3>🚨 API 서버에서 정상적인 응답을 받지 못했습니다.</h3>
-
-            <p>
-            HTTP 상태 코드:
-            <b>{response.status_code}</b>
-            </p>
-
-            <p>
-            잠시 후 다시 실행해 주세요.
-            </p>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.stop()
-
-
-# ============================================================
-# 9. JSON 데이터 읽기
-# ============================================================
-
-try:
+    # HTTP 오류가 발생했는지 확인
+    response.raise_for_status()
 
     data = response.json()
 
+except requests.exceptions.Timeout:
+    st.error("⏱️ KOBIS API 응답 시간이 초과되었습니다.")
+
+    st.markdown("""
+    <div class="help-box">
+        <b>확인할 것</b><br><br>
+        • 인터넷 연결 상태를 확인하세요.<br>
+        • 잠시 후 앱을 새로고침해 보세요.<br>
+        • KOBIS API 서버가 일시적으로 응답하지 않는 경우도 있습니다.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.stop()
+
+except requests.exceptions.RequestException:
+    st.error("🌐 KOBIS API에 연결하지 못했습니다.")
+
+    st.markdown("""
+    <div class="help-box">
+        <b>확인할 것</b><br><br>
+        • 인터넷 연결 상태를 확인하세요.<br>
+        • KOBIS API 주소가 정상인지 확인하세요.<br>
+        • 잠시 후 다시 실행해 보세요.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.stop()
+
 except ValueError:
+    st.error("📦 KOBIS API에서 올바른 JSON 데이터를 받지 못했습니다.")
 
     st.markdown("""
-    <div class="error-box">
-
-        <h3>📦 API 응답을 읽을 수 없습니다.</h3>
-
-        <p>
-        KOBIS API가 정상적인 JSON 데이터를 보내지 않았습니다.
-        </p>
-
-        <p>
-        잠시 후 다시 실행해 주세요.
-        </p>
-
+    <div class="help-box">
+        <b>확인할 것</b><br><br>
+        • KOBIS API 서버의 응답 상태를 확인하세요.<br>
+        • 잠시 후 다시 실행해 보세요.
     </div>
     """, unsafe_allow_html=True)
 
     st.stop()
 
 
-# ============================================================
-# 10. KOBIS faultInfo 확인
-# ============================================================
-# KOBIS는 인증키가 잘못되어도 HTTP 상태코드가 200일 수 있습니다.
-# 따라서 faultInfo를 반드시 확인합니다.
+# =========================================================
+# 8. KOBIS API의 오류 응답 확인
+# =========================================================
+# 인증키가 틀려도 HTTP 상태코드는 200일 수 있다.
+# 따라서 faultInfo가 있는지도 반드시 확인한다.
 
-if "faultInfo" in data and data["faultInfo"]:
+if "faultInfo" in data:
 
-    fault = data["faultInfo"]
+    fault_info = data["faultInfo"]
 
-    fault_code = fault.get(
-        "errorCode",
-        "알 수 없음"
-    )
-
-    fault_message = fault.get(
+    reason = fault_info.get(
         "message",
-        "알 수 없는 오류"
+        "KOBIS API에서 오류가 발생했습니다."
     )
 
-    st.markdown(
-        f"""
-        <div class="error-box">
-
-            <h3>🔑 KOBIS API에서 오류를 반환했습니다.</h3>
-
-            <p>
-            <b>오류 코드:</b>
-            {html.escape(str(fault_code))}
-            </p>
-
-            <p>
-            <b>오류 내용:</b>
-            {html.escape(str(fault_message))}
-            </p>
-
-            <hr>
-
-            <p><b>확인할 것:</b></p>
-
-            <ul>
-                <li>
-                    Streamlit Secrets의 이름이
-                    <b>KOBIS_KEY</b>인지 확인하세요.
-                </li>
-
-                <li>
-                    인증키에 불필요한 공백이 들어가지 않았는지 확인하세요.
-                </li>
-
-                <li>
-                    KOBIS에서 발급받은 인증키가 정상적으로 활성화되어
-                    있는지 확인하세요.
-                </li>
-            </ul>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.stop()
-
-
-# ============================================================
-# 11. boxOfficeResult 확인
-# ============================================================
-
-if "boxOfficeResult" not in data:
-
-    st.markdown("""
-    <div class="error-box">
-
-        <h3>📭 박스오피스 데이터를 찾을 수 없습니다.</h3>
-
-        <p>
-        API 응답에 boxOfficeResult가 없습니다.
-        </p>
-
-        <p>
-        인증키와 KOBIS API 상태를 확인해 주세요.
-        </p>
-
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.stop()
-
-
-box_office = data["boxOfficeResult"]
-
-
-# ============================================================
-# 12. 영화 목록 가져오기
-# ============================================================
-
-movies = box_office.get(
-    "dailyBoxOfficeList",
-    []
-)
-
-
-# 영화 목록이 비어 있을 경우
-if not movies:
+    st.error("🔑 KOBIS API 요청에 문제가 있습니다.")
 
     st.markdown(
         f"""
         <div class="help-box">
+            <b>API 오류 내용</b><br>
+            {html.escape(str(reason))}<br><br>
 
-            <h3>📭 영화 목록이 없습니다.</h3>
-
-            <p>
-            <b>{display_date}</b>의 일일 박스오피스 목록을
-            가져오지 못했습니다.
-            </p>
-
-            <p><b>확인할 것:</b></p>
-
-            <ul>
-                <li>
-                    KOBIS에서 해당 날짜의 박스오피스 데이터가
-                    존재하는지 확인하세요.
-                </li>
-
-                <li>
-                    KOBIS 인증키가 정상인지 확인하세요.
-                </li>
-
-                <li>
-                    잠시 후 페이지를 새로고침해 보세요.
-                </li>
-            </ul>
-
+            <b>확인할 것</b><br>
+            • Streamlit Secrets의 <b>KOBIS_KEY</b>가 정확한지 확인하세요.<br>
+            • 인증키 앞뒤에 불필요한 공백이 없는지 확인하세요.<br>
+            • KOBIS에서 발급받은 API 키가 정상적으로 활성화되어 있는지 확인하세요.
         </div>
         """,
         unsafe_allow_html=True
@@ -511,346 +303,232 @@ if not movies:
     st.stop()
 
 
-# ============================================================
-# 13. 숫자를 정수로 변환하는 함수
-# ============================================================
-# KOBIS API의 숫자 값은 문자열로 전달됩니다.
-# 예: "12345"
+# =========================================================
+# 9. 박스오피스 데이터 가져오기
+# =========================================================
 
-def to_int(value):
+try:
+    boxoffice_result = data["boxOfficeResult"]
+    movie_list = boxoffice_result["dailyBoxOfficeList"]
 
-    try:
+except (KeyError, TypeError):
+    st.error("📭 박스오피스 데이터를 찾을 수 없습니다.")
 
-        return int(
-            str(value).replace(",", "")
-        )
+    st.markdown("""
+    <div class="help-box">
+        <b>확인할 것</b><br><br>
+        • KOBIS API의 응답 형식이 정상인지 확인하세요.<br>
+        • 조회 날짜에 박스오피스 데이터가 아직 제공되지 않았을 수 있습니다.<br>
+        • 잠시 후 다시 실행해 보세요.
+    </div>
+    """, unsafe_allow_html=True)
 
-    except (ValueError, TypeError):
-
-        return 0
+    st.stop()
 
 
-# ============================================================
-# 14. 영화 데이터 정리
-# ============================================================
+# =========================================================
+# 10. 영화 목록이 비어 있는 경우
+# =========================================================
 
-for movie in movies:
+if not movie_list:
 
-    movie["rank_num"] = to_int(
-        movie.get("rank")
+    st.warning("🎬 해당 날짜의 영화 목록이 없습니다.")
+
+    st.markdown(
+        f"""
+        <div class="help-box">
+            <b>{display_date}</b>의 박스오피스 데이터가 비어 있습니다.<br><br>
+
+            <b>확인할 것</b><br>
+            • 날짜가 올바른지 확인하세요.<br>
+            • KOBIS에서 해당 날짜의 일일 박스오피스가 제공되는지 확인하세요.<br>
+            • 잠시 후 다시 실행해 보세요.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    movie["audiCnt_num"] = to_int(
-        movie.get("audiCnt")
+    st.stop()
+
+
+# =========================================================
+# 11. 숫자 데이터를 숫자로 변환
+# =========================================================
+# KOBIS API에서는 숫자도 문자열로 전달될 수 있으므로
+# 그래프와 표에서 제대로 사용하기 위해 정수로 변환한다.
+
+for movie in movie_list:
+    movie["rank"] = int(movie.get("rank", 0))
+    movie["audiCnt"] = int(movie.get("audiCnt", 0))
+    movie["audiAcc"] = int(movie.get("audiAcc", 0))
+    movie["scrnCnt"] = int(movie.get("scrnCnt", 0))
+    movie["showCnt"] = int(movie.get("showCnt", 0))
+
+
+# =========================================================
+# 12. 1위 영화 가져오기
+# =========================================================
+
+first_movie = movie_list[0]
+
+first_movie_name = first_movie.get("movieNm", "영화명 없음")
+first_audi = first_movie.get("audiCnt", 0)
+first_acc = first_movie.get("audiAcc", 0)
+first_screen = first_movie.get("scrnCnt", 0)
+first_open = first_movie.get("openDt", "-")
+
+# 개봉일 보기 좋게 변경
+if len(first_open) == 8:
+    first_open = (
+        f"{first_open[:4]}."
+        f"{first_open[4:6]}."
+        f"{first_open[6:]}"
     )
 
-    movie["audiAcc_num"] = to_int(
-        movie.get("audiAcc")
-    )
 
-    movie["scrnCnt_num"] = to_int(
-        movie.get("scrnCnt")
-    )
-
-
-# 순위 순서대로 정렬
-movies.sort(
-    key=lambda x: x["rank_num"]
-)
-
-
-# ============================================================
-# 15. 1위 영화 가져오기
-# ============================================================
-
-first_movie = movies[0]
-
-first_name = first_movie.get(
-    "movieNm",
-    "영화명 없음"
-)
-
-first_audience = first_movie[
-    "audiCnt_num"
-]
-
-first_acc = first_movie[
-    "audiAcc_num"
-]
-
-first_screen = first_movie[
-    "scrnCnt_num"
-]
-
-
-# ============================================================
-# 16. 1위 영화 카드
-# ============================================================
+# =========================================================
+# 13. 1위 영화 크게 표시
+# =========================================================
 
 st.markdown(
     f"""
-    <div class="movie-card">
-
-        <div class="movie-number">
-            🥒 어제의 박스오피스 1위
+    <div class="winner-card">
+        <div class="winner-rank">🏆 DAILY BOX OFFICE #1</div>
+        <div class="winner-title">{html.escape(first_movie_name)}</div>
+        <div class="winner-info">
+            개봉일 · {first_open}
         </div>
-
-        <div class="movie-name">
-            🎬 {html.escape(first_name)}
-        </div>
-
-        <div>
-            개봉일:
-            {html.escape(
-                first_movie.get("openDt", "-") or "-"
-            )}
-        </div>
-
     </div>
     """,
     unsafe_allow_html=True
 )
 
 
-# ============================================================
-# 17. 1위 영화 지표 카드 3개
-# ============================================================
+# =========================================================
+# 14. 지표 카드 3개
+# =========================================================
 
 col1, col2, col3 = st.columns(3)
 
-
 with col1:
-
-    st.metric(
-        "🥒 어제 관객수",
-        f"{first_audience:,}명"
+    st.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-label">어제 관객수</div>
+            <div class="metric-value">{first_audi:,}명</div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
 
 with col2:
-
-    st.metric(
-        "🥒 누적 관객수",
-        f"{first_acc:,}명"
+    st.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-label">누적 관객수</div>
+            <div class="metric-value">{first_acc:,}명</div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-
 
 with col3:
-
-    st.metric(
-        "🥒 스크린수",
-        f"{first_screen:,}개"
+    st.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-label">스크린수</div>
+            <div class="metric-value">{first_screen:,}개</div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-st.write("")
-
-
-# ============================================================
-# 18. 관객수 상위 5편
-# ============================================================
+# =========================================================
+# 15. 관객수 상위 5편
+# =========================================================
 
 top5 = sorted(
-    movies,
-    key=lambda x: x["audiCnt_num"],
+    movie_list,
+    key=lambda x: x["audiCnt"],
     reverse=True
 )[:5]
 
+chart_df = pd.DataFrame({
+    "영화": [movie["movieNm"] for movie in top5],
+    "관객수": [movie["audiCnt"] for movie in top5]
+})
 
-# 가장 관객수가 많은 영화
-max_audience = max(
-    movie["audiCnt_num"]
-    for movie in top5
-)
-
-
-# 혹시 관객수가 모두 0일 경우 대비
-if max_audience <= 0:
-
-    max_audience = 1
-
-
-# ============================================================
-# 19. 오이 길이로 표현하는 막대그래프
-# ============================================================
-
-st.subheader("🥒 관객수 상위 5편")
-
-st.caption(
-    "관객수가 많을수록 오이가 길어집니다."
-)
-
-
-chart_html = """
-<div class="cucumber-chart">
-"""
-
-
-for movie in top5:
-
-    name = html.escape(
-        movie.get(
-            "movieNm",
-            "영화명 없음"
-        )
-    )
-
-    audience = movie[
-        "audiCnt_num"
-    ]
-
-    rank = movie[
-        "rank_num"
-    ]
-
-
-    # 가장 많은 관객수를 100%로 설정합니다.
-    # 나머지 영화는 관객수 비율에 맞춰 오이 길이가 정해집니다.
-
-    width_percent = (
-        audience / max_audience
-    ) * 100
-
-
-    chart_html += f"""
-    <div class="cucumber-row">
-
-        <div class="cucumber-title">
-            {rank}위 · {name}
-        </div>
-
-        <div class="cucumber-track">
-
-            <div
-                class="cucumber-fill"
-                style="width: {width_percent:.1f}%;">
-            </div>
-
-        </div>
-
-        <div class="cucumber-value">
-            👥 {audience:,}명
-        </div>
-
-    </div>
-    """
-
-
-chart_html += """
-</div>
-"""
+chart_df = chart_df.set_index("영화")
 
 
 st.markdown(
-    chart_html,
+    '<div class="section-title">📊 관객수 TOP 5</div>',
     unsafe_allow_html=True
 )
 
-
-# ============================================================
-# 20. 전체 영화 표
-# ============================================================
-
-st.subheader("🎬 전체 박스오피스")
-
-
-table_data = []
-
-
-for movie in movies:
-
-    table_data.append(
-        {
-            "순위": movie["rank_num"],
-
-            "영화명": movie.get(
-                "movieNm",
-                "-"
-            ),
-
-            "개봉일": movie.get(
-                "openDt",
-                "-"
-            ) or "-",
-
-            "관객수": movie[
-                "audiCnt_num"
-            ],
-
-            "누적관객": movie[
-                "audiAcc_num"
-            ],
-
-            "스크린수": movie[
-                "scrnCnt_num"
-            ]
-        }
-    )
-
-
-# Streamlit 표로 표시
-st.dataframe(
-    table_data,
-
-    use_container_width=True,
-
-    hide_index=True,
-
-    column_config={
-
-        "순위":
-            st.column_config.NumberColumn(
-                "순위",
-                format="%d위"
-            ),
-
-        "영화명":
-            st.column_config.TextColumn(
-                "영화명"
-            ),
-
-        "개봉일":
-            st.column_config.TextColumn(
-                "개봉일"
-            ),
-
-        "관객수":
-            st.column_config.NumberColumn(
-                "관객수",
-                format="%d명"
-            ),
-
-        "누적관객":
-            st.column_config.NumberColumn(
-                "누적관객",
-                format="%d명"
-            ),
-
-        "스크린수":
-            st.column_config.NumberColumn(
-                "스크린수",
-                format="%d개"
-            )
-    }
+st.bar_chart(
+    chart_df,
+    y="관객수",
+    use_container_width=True
 )
 
 
-# ============================================================
-# 21. 정상적으로 데이터를 불러왔다는 안내
-# ============================================================
+# =========================================================
+# 16. 전체 영화 데이터를 표로 만들기
+# =========================================================
+
+table_data = []
+
+for movie in movie_list:
+
+    open_date = movie.get("openDt", "-")
+
+    if len(open_date) == 8:
+        open_date = (
+            f"{open_date[:4]}."
+            f"{open_date[4:6]}."
+            f"{open_date[6:]}"
+        )
+
+    table_data.append({
+        "순위": movie.get("rank", 0),
+        "영화명": movie.get("movieNm", "-"),
+        "개봉일": open_date,
+        "관객수": f'{movie.get("audiCnt", 0):,}명',
+        "누적관객": f'{movie.get("audiAcc", 0):,}명',
+        "스크린수": f'{movie.get("scrnCnt", 0):,}개'
+    })
+
+
+table_df = pd.DataFrame(table_data)
+
+
+# =========================================================
+# 17. 전체 박스오피스 표
+# =========================================================
+
+st.markdown(
+    '<div class="section-title">🎞️ 전체 박스오피스</div>',
+    unsafe_allow_html=True
+)
+
+st.dataframe(
+    table_df,
+    use_container_width=True,
+    hide_index=True
+)
+
+
+# =========================================================
+# 18. 하단 안내
+# =========================================================
 
 st.markdown(
     f"""
-    <div class="success-box">
-
-        ✅ <b>{display_date}</b>
-        KOBIS 박스오피스 데이터를 정상적으로 불러왔습니다.
-
-        <br>
-
-        조회 날짜:
-        <b>{target_date}</b>
-
+    <div class="footer">
+        📅 조회 날짜: {display_date}<br>
+        데이터 제공: KOBIS 영화관입장권통합전산망
     </div>
     """,
     unsafe_allow_html=True
